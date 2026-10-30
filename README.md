@@ -1,4 +1,4 @@
-A python virtual environment included in `.venv`.
+Python dependencies: `numpy scipy pandas matplotlib scikit-learn wfdb torch`
 
 A pre-made model in `results` and MIT-BIH database included in `data`.
 
