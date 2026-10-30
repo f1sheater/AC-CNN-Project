@@ -23,7 +23,6 @@ DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-# Simplified binary mapping of MIT-BIH beat annotations.
 NORMAL = {"N"}
 ABNORMAL = {"L", "R", "B", "A", "a", "J", "S",
             "V", "r", "F", "e", "j", "n", "E", "/", "f", "Q"}
@@ -36,7 +35,6 @@ def load_data():
         record_name = os.path.splitext(hea)[0]
         record_id = os.path.basename(record_name)
 
-        # These two records belong to the same subject.
         patient_group = (
             "201_202"
             if record_id in {"201", "202"}
@@ -66,7 +64,6 @@ def load_data():
 
             beat = signal[start:end].astype(np.float32)
 
-            # Normalize each heartbeat independently.
             beat = (beat - beat.mean()) / (beat.std() + 1e-6)
 
             X.append(beat)
@@ -162,18 +159,14 @@ def main():
             "No usable data or only one class was found."
         )
 
-    # Split by recording/patient group, never by individual heartbeat.
     records = np.unique(groups)
 
-    # First reserve 20% of groups for the final test set.
     trainval_records, test_records = train_test_split(
         records,
         test_size=0.20,
         random_state=RANDOM_SEED
     )
 
-    # Reserve 12.5% of the remaining groups for validation.
-    # This gives approximately 70% train, 10% validation, 20% test.
     train_records, val_records = train_test_split(
         trainval_records,
         test_size=0.125,
@@ -184,7 +177,7 @@ def main():
     val_idx = np.flatnonzero(np.isin(groups, val_records))
     test_idx = np.flatnonzero(np.isin(groups, test_records))
 
-    # Verify that no patient groups overlap.
+    # Verify that no patient groups overlap
     assert set(train_records).isdisjoint(val_records)
     assert set(train_records).isdisjoint(test_records)
     assert set(val_records).isdisjoint(test_records)
@@ -225,7 +218,6 @@ def main():
             f"class counts={np.bincount(labels, minlength=2)}"
         )
 
-    # Calculate class weights using training data only.
     counts = np.bincount(y_train, minlength=2)
     weights = len(y_train) / (
         2.0 * np.maximum(counts, 1)
@@ -279,7 +271,6 @@ def main():
         train_loss = total_train_loss / max(total_samples, 1)
         val_loss = evaluate_loss(model, val_loader, criterion)
 
-        # Keep the model with the lowest validation loss.
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_epoch = epoch + 1
@@ -294,7 +285,6 @@ def main():
     if best_state is None:
         raise RuntimeError("Training did not produce a model.")
 
-    # Restore the best validation model before final testing.
     model.load_state_dict(best_state)
 
     model_path = os.path.join(RESULTS_DIR, "ecg_cnn.pt")
@@ -304,7 +294,6 @@ def main():
     print(f"Best validation loss: {best_val_loss:.4f}")
     print(f"Saved best model to {model_path}")
 
-    # Evaluate the held-out test set after training is complete.
     model.eval()
     predictions, targets = [], []
 
